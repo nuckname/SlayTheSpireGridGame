@@ -58,65 +58,11 @@ public class HorizontalCardHolder : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Safely injects a new card back into the hand from the world 
-    /// ensuring it is placed in a Slot and its events are wired correctly.
-    /// Now accepts a start position to animate from the mouse cursor!
-    /// </summary>
-    public void AddCardToHand(GameObject cardPrefabToSpawn, Vector3? startScreenPosition = null)
-    {
-        // Instantiate a new slot so the layout group handles it properly
-        GameObject newSlot = Instantiate(slotPrefab, transform);
-        
-        // Instantiate the actual UI card inside it
-        GameObject newCardObj = Instantiate(cardPrefabToSpawn, newSlot.transform);
-        CardMovement newCardMovement = newCardObj.GetComponent<CardMovement>();
-
-        if (newCardMovement != null)
-        {
-            RegisterCardEvents(newCardMovement, transform.childCount - 1);
-        }
-
-        RebuildHandVisuals();
-
-        // Fling the card from the mouse position into its slot!
-        if (startScreenPosition.HasValue)
-        {
-            // Force the UI card to the mouse position
-            newCardObj.transform.position = startScreenPosition.Value;
-            
-            // Animate it back to the center of its slot (Vector3.zero)
-            // Using a slightly longer duration (0.3f) so you can actually see it fly into the hand
-            newCardObj.transform.DOLocalMove(Vector3.zero, tweenCardReturn ? 0.3f : 0f).SetEase(Ease.OutBack);
-        }
-    }
-
     private void RegisterCardEvents(CardMovement card, int index)
     {
         card.PointerEnterEvent.AddListener(CardPointerEnter);
         card.PointerExitEvent.AddListener(CardPointerExit);
-        card.BeginDragEvent.AddListener(BeginDrag);
-        card.EndDragEvent.AddListener(EndDrag);
         card.name = index.ToString();
-    }
-
-    private void BeginDrag(CardMovement cardMovement)
-    {
-        selectedCardMovement = cardMovement;
-    }
-
-    void EndDrag(CardMovement cardMovement)
-    {
-        if (selectedCardMovement == null)
-            return;
-
-        selectedCardMovement.transform.DOLocalMove(selectedCardMovement.selected ? new Vector3(0,selectedCardMovement.selectionOffset,0) : Vector3.zero, tweenCardReturn ? .15f : 0).SetEase(Ease.OutBack);
-
-        // Forces layout rebuild trigger
-        rect.sizeDelta += Vector2.right;
-        rect.sizeDelta -= Vector2.right;
-
-        selectedCardMovement = null;
     }
 
     void CardPointerEnter(CardMovement cardMovement)
@@ -129,90 +75,6 @@ public class HorizontalCardHolder : MonoBehaviour
         hoveredCardMovement = null;
     }
 
-    void Update()
-    {
-        HandleDebugInput();
-        HandleCardSwapping();
-    }
-
-    private void HandleDebugInput()
-    {
-        if (Input.GetKeyDown(KeyCode.Delete))
-        {
-            if (hoveredCardMovement != null)
-            {
-                // Instantly unparent the slot before destroying it so childCount updates instantly
-                hoveredCardMovement.transform.parent.SetParent(null);
-                Destroy(hoveredCardMovement.transform.parent.gameObject);
-                
-                cardsInHand.Remove(hoveredCardMovement);
-                
-                // Rebuild the hand to reflect the deleted card
-                RebuildHandVisuals();
-            }
-        }
-
-        if (Input.GetMouseButtonDown(1))
-        {
-            foreach (CardMovement card in cardsInHand)
-            {
-                card.Deselect();
-            }
-        }
-    }
-
-    private void HandleCardSwapping()
-    {
-        if (selectedCardMovement == null || isCrossing)
-            return;
-
-        for (int i = 0; i < cardsInHand.Count; i++)
-        {
-            if (selectedCardMovement.transform.position.x > cardsInHand[i].transform.position.x)
-            {
-                if (selectedCardMovement.ParentIndex() < cardsInHand[i].ParentIndex())
-                {
-                    Swap(i);
-                    break;
-                }
-            }
-
-            if (selectedCardMovement.transform.position.x < cardsInHand[i].transform.position.x)
-            {
-                if (selectedCardMovement.ParentIndex() > cardsInHand[i].ParentIndex())
-                {
-                    Swap(i);
-                    break;
-                }
-            }
-        }
-    }
-    
-    /// <summary>
-    /// Spawns a card and immediately forces it into the user's hand as an active drag,
-    /// skipping the "return to slot" animation entirely.
-    /// </summary>
-    public void SpawnAndDragCard(GameObject cardPrefabToSpawn)
-    {
-        // Spawn the card directly under the Canvas (transform.parent) instead of inside a slot.
-        // This keeps it free-floating and perfectly locked to the mouse coordinates!
-        GameObject newCardObj = Instantiate(cardPrefabToSpawn, transform.parent);
-        CardMovement newCardMovement = newCardObj.GetComponent<CardMovement>();
-
-        if (newCardMovement != null)
-        {
-            RegisterCardEvents(newCardMovement, cardsInHand.Count);
-            
-            // Immediately snap the UI element to the mouse
-            newCardObj.transform.position = Input.mousePosition;
-            
-            // Force the card into an active drag state
-            newCardMovement.ForceStartDrag();
-        }
-        
-        // We do not rebuild visuals yet because we haven't added a slot to the hand!
-    }
-
     /// <summary>
     /// Safely wraps a floating card into a layout slot when it is finally dropped in the hand.
     /// </summary>
@@ -221,29 +83,6 @@ public class HorizontalCardHolder : MonoBehaviour
         GameObject newSlot = Instantiate(slotPrefab, transform);
         card.transform.SetParent(newSlot.transform);
         
-        RebuildHandVisuals();
-    }
-
-    void Swap(int index)
-    {
-        isCrossing = true;
-
-        Transform focusedParent = selectedCardMovement.transform.parent;
-        Transform crossedParent = cardsInHand[index].transform.parent;
-
-        cardsInHand[index].transform.SetParent(focusedParent);
-        cardsInHand[index].transform.localPosition = cardsInHand[index].selected ? new Vector3(0, cardsInHand[index].selectionOffset, 0) : Vector3.zero;
-        selectedCardMovement.transform.SetParent(crossedParent);
-
-        isCrossing = false;
-
-        if (cardsInHand[index].cardAnimator == null)
-            return;
-
-        bool swapIsRight = cardsInHand[index].ParentIndex() > selectedCardMovement.ParentIndex();
-        cardsInHand[index].cardAnimator.Swap(swapIsRight ? -1 : 1);
-
-        //Updated Visual Indexes
         RebuildHandVisuals();
     }
 

@@ -9,7 +9,7 @@ using UnityEngine.UI;
 // https://www.youtube.com/watch?v=I1dAZuWurw4
 // https://github.com/mixandjam/balatro-feel
 
-public class CardMovement : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler, IPointerUpHandler, IPointerDownHandler
+public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerUpHandler, IPointerDownHandler
 {
     private Image _imageComponent;
     [SerializeField] private bool instantiateVisual = true;
@@ -70,173 +70,11 @@ public class CardMovement : MonoBehaviour, IDragHandler, IBeginDragHandler, IEnd
         cardAnimator.Initialize(this);
     }
 
-    // Forces the card into a drag state programmatically
-    public void ForceStartDrag()
-    {
-        // Tell HorizontalCardHolder to set this as the selected card
-        BeginDragEvent.Invoke(this); 
-        
-        // Center the card directly on the mouse
-        offset = Vector3.zero; 
-        
-        isDragging = true;
-        wasDragged = true;
-        
-        // Prevent the card from blocking raycasts while dragging
-        _imageComponent.raycastTarget = false; 
-    }
-
-    void Update()
-    {
-        ClampPosition();
-
-        if (isDragging)
-        {
-            // MOVE MOVEMENT LOGIC HERE: Since the EventSystem won't fire OnDrag 
-            // automatically when forced, we update the position in Update()
-            if (!isPreviewingInWorld)
-            {
-                transform.position = Input.mousePosition - offset;
-            }
-
-            HandlePlayAreaTransition();
-
-            // MANUAL DROP DETECTION: Listen for the mouse release manually
-            if (Input.GetMouseButtonUp(0))
-            {
-                OnEndDrag(null); // Passing null is perfectly safe here
-            }
-        }
-    }
-
-// UPDATE OnDrag: You can completely empty out OnDrag since we moved 
-    // the movement logic into Update(), but keep the interface method so Unity doesn't complain.
-    public void OnDrag(PointerEventData eventData) 
-    { 
-        // Logic moved to Update() to support both UI dragging and programmatic dragging
-    }
-
-    // Toggles the card's visual state when dragged in or out of the designated play area.
-    private void HandlePlayAreaTransition()
-    {
-        bool isMouseInPlayArea = Input.mousePosition.y > playAreaThresholdY;
-
-        if (isMouseInPlayArea && !isPreviewingInWorld)
-        {
-            // TRANSITION TO WORLD
-            isPreviewingInWorld = true;
-            
-            _imageComponent.enabled = false;
-            cardAnimator.gameObject.SetActive(false);
-
-            OnEnterPlayArea?.Invoke();
-        }
-        else if (!isMouseInPlayArea && isPreviewingInWorld)
-        {
-            // TRANSITION BACK TO HAND
-            isPreviewingInWorld = false;
-
-            _imageComponent.enabled = true;
-            cardAnimator.gameObject.SetActive(true);
-
-            OnExitPlayArea?.Invoke();
-        }
-    }
-
-    // Prevents the UI card from being dragged outside the edges of the screen.
-    void ClampPosition()
-    {
-        Vector3 clampedPosition = transform.position;
-        
-        clampedPosition.x = Mathf.Clamp(clampedPosition.x, 0, Screen.width);
-        clampedPosition.y = Mathf.Clamp(clampedPosition.y, 0, Screen.height);
-        
-        transform.position = clampedPosition;
-    }
-
-    // Triggers drag events, calculates the grab offset.
-    public void OnBeginDrag(PointerEventData eventData)
-    {
-        BeginDragEvent.Invoke(this);
-        
-        offset = Input.mousePosition - transform.position;
-        isDragging = true;
-        
-        _imageComponent.raycastTarget = false;
-
-        wasDragged = true;
-    }
-
-    // Fires drop events and resolves placement based on whether the card is in the play area.
-    public void OnEndDrag(PointerEventData eventData)
-    {
-        isDragging = false;
-        
-        if (isPreviewingInWorld)
-        {
-            EndDragEvent.Invoke(this);
-            OnDropInPlayArea?.Invoke();
-        }
-        else
-        {
-            // NEW: If this is a floating card pulled from the world, it needs a slot 
-            // BEFORE we fire EndDragEvent so the DOLocalMove animation targets the slot center!
-            if (transform.parent != null && !transform.parent.CompareTag("Slot") && HorizontalCardHolder.Instance != null)
-            {
-                HorizontalCardHolder.Instance.AssignSlotToCard(this);
-            }
-
-            EndDragEvent.Invoke(this);
-            ReturnToHand();
-        }
-    }
-
-    // Cancels the play preview and restores the card's UI visuals in the hand.
-    public void ReturnToHand()
-    {
-        Debug.Log("CardMovement REutnr to hand");
-        // FAILED TO PLACE (Cell occupied or invalid) - Return to Hand
-        isPreviewingInWorld = false;
-
-        _imageComponent.enabled = true;
-        if (cardAnimator != null) 
-            cardAnimator.gameObject.SetActive(true);
-
-        // RETURNED TO HAND
-        _imageComponent.raycastTarget = true;
-
-        StartCoroutine(FrameWait());
-    }
-
     // Waits for the end of the frame to reset the dragged state flag.
     private IEnumerator FrameWait()
     {
         yield return new WaitForEndOfFrame();
         wasDragged = false;
-    }
-
-    // Cleans up the card and its container slot after being successfully played.
-    public void SuccessfulPlay()
-    {
-        if (HorizontalCardHolder.Instance != null)
-        {
-            HorizontalCardHolder.Instance.cardsInHand.Remove(this);
-        }
-
-        // Instantly unparent the slot so childCount updates immediately
-        if (transform.parent != null && transform.parent.CompareTag("Slot"))
-        {
-            transform.parent.SetParent(null);
-            Destroy(transform.parent.gameObject);
-        }
-        
-        // Tell the manager to update the visuals for the REMAINING cards
-        if (HorizontalCardHolder.Instance != null)
-        {
-            HorizontalCardHolder.Instance.RebuildHandVisuals();
-        }
-
-        Destroy(gameObject);
     }
 
     // Fires the enter event and marks the card as hovering.
