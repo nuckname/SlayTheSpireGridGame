@@ -14,7 +14,6 @@ GameObject:
   - component: {fileID: 8562604021319485591}
   - component: {fileID: -3148967189081000219}
   - component: {fileID: 4549560269222271486}
-  - component: {fileID: 8251351676385688934}
   m_Layer: 5
   m_Name: Card
   m_TagString: Untagged
@@ -179,28 +178,3 @@ MonoBehaviour:
   SelectEvent:
     m_PersistentCalls:
       m_Calls: []
-  OnEnterPlayArea:
-    m_PersistentCalls:
-      m_Calls: []
-  OnExitPlayArea:
-    m_PersistentCalls:
-      m_Calls: []
-  OnDropInPlayArea:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!114 &8251351676385688934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8994356602663114153}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1434c69d7ed6f8242b05697b7d00d8ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  worldGameObjectPrefab: {fileID: 5919451674846626430, guid: 8971976a1df076f4489a7b817e836191, type: 3}
-  worldPlacementMask:
-    serializedVersion: 2
-    m_Bits: 64

@@ -27,7 +27,7 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     private float _pointerUpTime;
 
     [Header("Visual")]
-    [SerializeField] private GameObject cardVisualPrefab;
+    public GameObject cardVisualPrefab;
     [HideInInspector] public CardAnimator cardAnimator;
 
     [Header("Play Area Threshold")]
@@ -50,10 +50,6 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     [HideInInspector] public UnityEvent<CardMovement> EndDragEvent;
     [HideInInspector] public UnityEvent<CardMovement, bool> SelectEvent;
     
-    [HideInInspector] public UnityEvent OnEnterPlayArea;
-    [HideInInspector] public UnityEvent OnExitPlayArea;
-    [HideInInspector] public UnityEvent OnDropInPlayArea;
-
     private void Awake()
     {
         _imageComponent = GetComponent<Image>();
@@ -68,13 +64,6 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         cardAnimator = Instantiate(cardVisualPrefab, _visualHandler.transform).GetComponent<CardAnimator>();
         
         cardAnimator.Initialize(this);
-    }
-
-    // Waits for the end of the frame to reset the dragged state flag.
-    private IEnumerator FrameWait()
-    {
-        yield return new WaitForEndOfFrame();
-        wasDragged = false;
     }
 
     // Fires the enter event and marks the card as hovering.
@@ -101,12 +90,10 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
             return;
         }
 
-        print("OnPointerDown");
         PointerDownEvent.Invoke(this);
         _pointerDownTime = Time.time;
     }
 
-    // Placing pin
     // Determines if a click was a quick tap to toggle selection and fires relevant events.
     public void OnPointerUp(PointerEventData eventData)
     {
@@ -125,21 +112,17 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
 
         selected = !selected;
         SelectEvent.Invoke(this, selected);
+        
+        // Card selected here
+        if (GridManager.Instance != null)
+        {
+            GridManager.Instance.ToggleSquare(this, selected);
+        }
 
         if (selected)
             transform.localPosition += (cardAnimator.transform.up * selectionOffset);
         else
             transform.localPosition = Vector3.zero;
-    }
-
-    // Forces the card out of its selected state and resets its local position.
-    public void Deselect()
-    {
-        if (selected)
-        {
-            selected = false;
-            transform.localPosition = Vector3.zero;
-        }
     }
 
     // Returns the total number of sibling slots in the parent container.
@@ -165,5 +148,11 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     {
         if(cardAnimator != null)
             Destroy(cardAnimator.gameObject);
+            
+        // Fallback cleanup: If the card is completely destroyed while selected, ensure its square gets deleted too
+        if (selected && GridManager.Instance != null)
+        {
+            GridManager.Instance.ToggleSquare(this, false);
+        }
     }
 }

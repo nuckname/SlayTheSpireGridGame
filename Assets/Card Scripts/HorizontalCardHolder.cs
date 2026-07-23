@@ -7,7 +7,6 @@ using System.Linq;
 // https://www.youtube.com/watch?v=I1dAZuWurw4
 // https://github.com/mixandjam/balatro-feel
 
-
 public class HorizontalCardHolder : MonoBehaviour
 {
     public static HorizontalCardHolder Instance { get; private set; }
@@ -20,6 +19,8 @@ public class HorizontalCardHolder : MonoBehaviour
 
     [Header("Spawn Settings")]
     [SerializeField] private int cardsToSpawn = 7;
+    [Tooltip("Populate this in the inspector with your unique CardData Scriptable Objects")]
+    [SerializeField] private List<CardData> startingDeck = new List<CardData>();
     public List<CardMovement> cardsInHand;
 
     bool isCrossing = false;
@@ -38,7 +39,18 @@ public class HorizontalCardHolder : MonoBehaviour
         // Spawn initial cards
         for (int i = 0; i < cardsToSpawn; i++)
         {
-            Instantiate(slotPrefab, transform);
+            GameObject newSlot = Instantiate(slotPrefab, transform);
+            
+            // Look for the data container we made earlier on the spawned card
+            CardMovement cardMovement = newSlot.GetComponentInChildren<CardMovement>();
+            Card spawnedCard = cardMovement.cardVisualPrefab.GetComponentInChildren<Card>();
+            
+            // Assign a unique Scriptable Object from the deck list
+            if (spawnedCard != null && i < startingDeck.Count)
+            {
+                spawnedCard.cardData = startingDeck[i];
+                spawnedCard.UpdateVisuals(); 
+            }
         }
 
         cardsInHand = GetComponentsInChildren<CardMovement>().ToList();

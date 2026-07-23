@@ -166,6 +166,7 @@ public class CardAnimator : MonoBehaviour
         tiltParent.eulerAngles = new Vector3(lerpX, lerpY, lerpZ);
     }
 
+    // For animation purposes
     private void Select(CardMovement cardMovement, bool state)
     {
         DOTween.Kill(2, true);
