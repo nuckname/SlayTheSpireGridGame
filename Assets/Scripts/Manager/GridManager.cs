@@ -55,7 +55,7 @@ public class GridManager : MonoBehaviour
     public void ToggleSquare(CardMovement cardMovement, bool isSelected, int specificX = -1, int specificY = -1)
     {
         Card card = cardMovement.cardVisualPrefab.GetComponentInChildren<Card>();
-        
+       // Card card = cardMovement.GetComponent<Card>();
         if (card == null || card.cardData == null) 
         {
             Debug.LogWarning("This CardMovement doesn't have a Card data container attached!");

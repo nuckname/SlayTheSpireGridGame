@@ -42,8 +42,7 @@ public class HorizontalCardHolder : MonoBehaviour
             GameObject newSlot = Instantiate(slotPrefab, transform);
             
             // Look for the data container we made earlier on the spawned card
-            CardMovement cardMovement = newSlot.GetComponentInChildren<CardMovement>();
-            Card spawnedCard = cardMovement.cardVisualPrefab.GetComponentInChildren<Card>();
+            Card spawnedCard = newSlot.GetComponentInChildren<CardMovement>().cardVisualPrefab.GetComponentInChildren<Card>();
             
             // Assign a unique Scriptable Object from the deck list
             if (spawnedCard != null && i < startingDeck.Count)
