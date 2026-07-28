@@ -54,7 +54,7 @@ public class GridManager : MonoBehaviour
     // Now accepts an optional specific X/Y coordinate to place the card at
     public void ToggleSquare(CardMovement cardMovement, bool isSelected, int specificX = -1, int specificY = -1)
     {
-        Card card = cardMovement.cardVisualPrefab.GetComponentInChildren<Card>();
+        Card card = cardMovement.GetComponentInChildren<Card>();
        // Card card = cardMovement.GetComponent<Card>();
         if (card == null || card.cardData == null) 
         {

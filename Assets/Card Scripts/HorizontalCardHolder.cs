@@ -42,7 +42,7 @@ public class HorizontalCardHolder : MonoBehaviour
             GameObject newSlot = Instantiate(slotPrefab, transform);
             
             // Look for the data container we made earlier on the spawned card
-            Card spawnedCard = newSlot.GetComponentInChildren<CardMovement>().cardVisualPrefab.GetComponentInChildren<Card>();
+            Card spawnedCard = newSlot.GetComponentInChildren<Card>();
             
             // Assign a unique Scriptable Object from the deck list
             if (spawnedCard != null && i < startingDeck.Count)
@@ -91,9 +91,7 @@ public class HorizontalCardHolder : MonoBehaviour
     /// </summary>
     public void AssignSlotToCard(CardMovement card)
     {
-        GameObject newSlot = Instantiate(slotPrefab, transform);
-        card.transform.SetParent(newSlot.transform);
-        
+        card.transform.SetParent(transform);
         RebuildHandVisuals();
     }
 
@@ -121,9 +119,6 @@ public class HorizontalCardHolder : MonoBehaviour
 
                 if (cardSlot.cardAnimator != null)
                 {
-                    // Update the visual's sibling index to match the slot's order
-                    cardSlot.cardAnimator.transform.SetSiblingIndex(i);
-
                     // Pass the new length to the animator for curve/spacing math
                     cardSlot.cardAnimator.UpdateLength(currentLength);
                 }

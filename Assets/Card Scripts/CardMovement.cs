@@ -12,8 +12,6 @@ using UnityEngine.UI;
 public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerUpHandler, IPointerDownHandler
 {
     private Image _imageComponent;
-    [SerializeField] private bool instantiateVisual = true;
-    private VisualCardsHandler _visualHandler;
     
     private Vector3 offset; 
 
@@ -27,8 +25,7 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     private float _pointerUpTime;
 
     [Header("Visual")]
-    public GameObject cardVisualPrefab;
-    [HideInInspector] public CardAnimator cardAnimator;
+    public CardAnimator cardAnimator;
 
     [Header("Play Area Threshold")]
     [Tooltip("How high up the screen we the spawn the pin, in pixels")]
@@ -53,17 +50,13 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     private void Awake()
     {
         _imageComponent = GetComponent<Image>();
-        _visualHandler = GameObject.FindGameObjectWithTag("VisualCardHandler").GetComponent<VisualCardsHandler>();
+        if (cardAnimator == null) cardAnimator = GetComponentInChildren<CardAnimator>();
     }
 
     void Start()
     {
-        if (!instantiateVisual)
-            return;
-
-        cardAnimator = Instantiate(cardVisualPrefab, _visualHandler.transform).GetComponent<CardAnimator>();
-        
-        cardAnimator.Initialize(this);
+        if (cardAnimator != null)
+            cardAnimator.Initialize(this);
     }
 
     // Fires the enter event and marks the card as hovering.
@@ -128,31 +121,28 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     // Returns the total number of sibling slots in the parent container.
     public int SiblingAmount()
     {
-        return transform.parent != null && transform.parent.parent != null && transform.parent.CompareTag("Slot") ? transform.parent.parent.childCount - 1 : 0;
+        return transform.parent != null ? transform.parent.childCount - 1 : 0;
     }
 
     // Gets the current index of this card's UI slot within its parent container.
     public int ParentIndex()
     {
-        return transform.parent != null && transform.parent.CompareTag("Slot") ? transform.parent.GetSiblingIndex() : 0;
+        return transform.parent != null ? transform.GetSiblingIndex() : 0;
     }
 
     // Calculates the card's relative position (0.0 to 1.0) within the hand.
     public float NormalizedPosition()
     {
-        return transform.parent != null && transform.parent.parent != null && transform.parent.CompareTag("Slot") ? ExtensionMethods.Remap((float)ParentIndex(), 0, (float)(transform.parent.parent.childCount - 1), 0, 1) : 0;
+        return transform.parent != null && SiblingAmount() > 0 ? ExtensionMethods.Remap((float)ParentIndex(), 0, (float)SiblingAmount(), 0, 1) : 0;
     }
 
     // Cleans up the linked visual animator object when this card is destroyed.
     private void OnDestroy()
     {
-        if(cardAnimator != null)
-            Destroy(cardAnimator.gameObject);
-            
         // Fallback cleanup: If the card is completely destroyed while selected, ensure its square gets deleted too
         if (selected && GridManager.Instance != null)
         {
             GridManager.Instance.ToggleSquare(this, false);
         }
-    }
+    } 
 }
