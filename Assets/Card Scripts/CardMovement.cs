@@ -64,6 +64,8 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     // Fires the enter event and marks the card as hovering.
     public void OnPointerEnter(PointerEventData eventData)
     {
+        if (!GameStateManager.CanClickCards) return;
+        
         PointerEnterEvent.Invoke(this);
         isHovering = true;
     }
@@ -71,6 +73,8 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     // Fires the exit event and removes the hovering state.
     public void OnPointerExit(PointerEventData eventData)
     {
+        if (!GameStateManager.CanClickCards) return;
+        
         PointerExitEvent.Invoke(this);
         isHovering = false;
     }
@@ -79,6 +83,8 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     // Records the start time of a left mouse click for tap vs. drag detection.
     public void OnPointerDown(PointerEventData eventData)
     {
+        if (!GameStateManager.CanClickCards) return;
+        
         if (eventData.button != PointerEventData.InputButton.Left)
         {
             Debug.LogError("returned");
@@ -92,6 +98,8 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     // Determines if a click was a quick tap to toggle selection and fires relevant events.
     public void OnPointerUp(PointerEventData eventData)
     {
+        if (!GameStateManager.CanClickCards) return;
+        
         if (eventData.button != PointerEventData.InputButton.Left)
             return;
 
