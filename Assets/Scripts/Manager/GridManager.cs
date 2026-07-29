@@ -52,10 +52,8 @@ public class GridManager : MonoBehaviour
 
     // Handles adding/removing squares via the card selection and tracks them
     // Now accepts an optional specific X/Y coordinate to place the card at
-    public void ToggleSquare(CardMovement cardMovement, bool isSelected, int specificX = -1, int specificY = -1)
+    public void ToggleSquare(Card card, CardMovement cardMovement, bool isSelected, int specificX = -1, int specificY = -1)
     {
-        Card card = cardMovement.GetComponentInChildren<Card>();
-       // Card card = cardMovement.GetComponent<Card>();
         if (card == null || card.cardData == null) 
         {
             Debug.LogWarning("This CardMovement doesn't have a Card data container attached!");

@@ -26,6 +26,7 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
 
     [Header("Visual")]
     public CardAnimator cardAnimator;
+    public Card card; 
 
     [Header("Play Area Threshold")]
     [Tooltip("How high up the screen we the spawn the pin, in pixels")]
@@ -51,6 +52,7 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
     {
         _imageComponent = GetComponent<Image>();
         if (cardAnimator == null) cardAnimator = GetComponentInChildren<CardAnimator>();
+        if (card == null) card = GetComponentInChildren<Card>(); 
     }
 
     void Start()
@@ -109,7 +111,7 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         // Card selected here
         if (GridManager.Instance != null)
         {
-            GridManager.Instance.ToggleSquare(this, selected);
+            GridManager.Instance.ToggleSquare(card, this, selected);
         }
 
         if (selected)
@@ -142,7 +144,7 @@ public class CardMovement : MonoBehaviour, IPointerEnterHandler, IPointerExitHan
         // Fallback cleanup: If the card is completely destroyed while selected, ensure its square gets deleted too
         if (selected && GridManager.Instance != null)
         {
-            GridManager.Instance.ToggleSquare(this, false);
+            GridManager.Instance.ToggleSquare(card, this, false);
         }
     } 
 }
