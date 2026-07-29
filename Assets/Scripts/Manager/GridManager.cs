@@ -15,12 +15,13 @@ public class GridManager : MonoBehaviour
     [Tooltip("The UI square prefab to spawn")]
     [SerializeField] private Image squarePrefab;
 
-    // 2D array to hold our pre-generated grid cells
     private Image[,] _gridCells;
     private bool[,] _occupiedCells;
 
-    // Maps a card to the specific list of grid cell images it occupies
     private Dictionary<CardMovement, List<Image>> _cardSquareMap = new Dictionary<CardMovement, List<Image>>();
+    
+    // Tracks the order in which cards were selected to allow auto-packing
+    private List<CardMovement> _activeCards = new List<CardMovement>();
 
     private void Awake()
     {
@@ -44,15 +45,13 @@ public class GridManager : MonoBehaviour
             {
                 // Spawn empty grid cells and make them invisible/transparent to start
                 Image newSquare = Instantiate(squarePrefab, gridParent);
-                newSquare.color = new Color(1, 1, 1, 0.1f); // Dimmed for empty space
+                newSquare.color = new Color(1, 1, 1, 0.1f); 
                 _gridCells[x, y] = newSquare;
             }
         }
     }
 
-    // Handles adding/removing squares via the card selection and tracks them
-    // Now accepts an optional specific X/Y coordinate to place the card at
-    public void ToggleSquare(Card card, CardMovement cardMovement, bool isSelected, int specificX = -1, int specificY = -1)
+    public void ToggleSquare(Card card, CardMovement cardMovement, bool isSelected)
     {
         if (card == null || card.cardData == null) 
         {
@@ -62,25 +61,42 @@ public class GridManager : MonoBehaviour
 
         if (isSelected)
         {
-            List<Vector2Int> validPlacement = null;
+            if (!_activeCards.Contains(cardMovement))
+            {
+                _activeCards.Add(cardMovement);
+            }
+        }
+        else
+        {
+            if (_activeCards.Contains(cardMovement))
+            {
+                _activeCards.Remove(cardMovement);
+            }
+        }
 
-            // If we passed in a specific grid coordinate, check if the shape fits right there
-            if (specificX != -1 && specificY != -1)
+        RepackGrid();
+    }
+
+    private void RepackGrid()
+    {
+        // Wipe the entire grid visually and logically
+        for (int y = 0; y < gridHeight; y++)
+        {
+            for (int x = 0; x < gridWidth; x++)
             {
-                if (CanShapeFitAt(card.cardData.shapeCoordinates, specificX, specificY))
-                {
-                    validPlacement = new List<Vector2Int>();
-                    foreach (Vector2Int offset in card.cardData.shapeCoordinates)
-                    {
-                        validPlacement.Add(new Vector2Int(specificX + offset.x, specificY + offset.y));
-                    }
-                }
+                _occupiedCells[x, y] = false;
+                _gridCells[x, y].color = new Color(1, 1, 1, 0.1f);
             }
-            else
-            {
-                // Otherwise fall back to auto-finding the first available space
-                validPlacement = FindFirstAvailableSpace(card.cardData.shapeCoordinates);
-            }
+        }
+        
+        _cardSquareMap.Clear();
+
+        List<CardMovement> cardsToDeselect = new List<CardMovement>();
+
+        // Re-place all active cards in the exact order they were clicked
+        foreach (CardMovement activeCard in _activeCards)
+        {
+            List<Vector2Int> validPlacement = FindFirstAvailableSpace(activeCard.card.cardData.shapeCoordinates);
 
             if (validPlacement != null)
             {
@@ -90,48 +106,28 @@ public class GridManager : MonoBehaviour
                 {
                     _occupiedCells[pos.x, pos.y] = true;
                     Image cellImage = _gridCells[pos.x, pos.y];
-                    cellImage.color = new Color(1, 1, 1, 1f); // Highlight to show it's occupied
+                    cellImage.color = new Color(1, 1, 1, 1f); 
                     occupiedImages.Add(cellImage);
                 }
 
-                _cardSquareMap.Add(cardMovement, occupiedImages);
+                _cardSquareMap.Add(activeCard, occupiedImages);
             }
             else
             {
-                Debug.LogWarning("Not enough space on the grid for this shape at the target location!");
-                
-                // Force deselect the card so it visually pops back down if it fails to place
-                cardMovement.selected = false;
-                cardMovement.transform.localPosition = Vector3.zero; 
+                Debug.LogWarning("Not enough space on the grid for this shape! Pushing it back out.");
+                cardsToDeselect.Add(activeCard);
             }
         }
-        else
+
+        // Clean up any cards that no longer fit on the board after shifting
+        foreach (CardMovement failedCard in cardsToDeselect)
         {
-            if (_cardSquareMap.ContainsKey(cardMovement))
-            {
-                List<Image> squaresToClear = _cardSquareMap[cardMovement];
-                
-                // Find the coordinates of these images and clear them
-                for (int y = 0; y < gridHeight; y++)
-                {
-                    for (int x = 0; x < gridWidth; x++)
-                    {
-                        if (squaresToClear.Contains(_gridCells[x, y]))
-                        {
-                            _occupiedCells[x, y] = false;
-                            _gridCells[x, y].color = new Color(1, 1, 1, 0.1f); // Return to dimmed state
-                        }
-                    }
-                }
-                
-                _cardSquareMap.Remove(cardMovement);
-            }
+            _activeCards.Remove(failedCard);
+            failedCard.selected = false;
+            failedCard.transform.localPosition = Vector3.zero; 
         }
     }
 
-    /// <summary>
-    /// Scans the grid left-to-right, top-to-bottom to find a valid anchor point for the shape.
-    /// </summary>
     private List<Vector2Int> FindFirstAvailableSpace(List<Vector2Int> shapeOffsets)
     {
         for (int y = 0; y < gridHeight; y++)
@@ -140,7 +136,6 @@ public class GridManager : MonoBehaviour
             {
                 if (CanShapeFitAt(shapeOffsets, x, y))
                 {
-                    // Return the exact absolute grid coordinates this shape will consume
                     List<Vector2Int> actualPositions = new List<Vector2Int>();
                     foreach (Vector2Int offset in shapeOffsets)
                     {
@@ -150,7 +145,7 @@ public class GridManager : MonoBehaviour
                 }
             }
         }
-        return null; // No space found
+        return null; 
     }
 
     private bool CanShapeFitAt(List<Vector2Int> shapeOffsets, int startX, int startY)
@@ -160,11 +155,9 @@ public class GridManager : MonoBehaviour
             int targetX = startX + offset.x;
             int targetY = startY + offset.y;
 
-            // Check out of bounds
             if (targetX < 0 || targetX >= gridWidth || targetY < 0 || targetY >= gridHeight)
                 return false;
 
-            // Check if cell is already taken
             if (_occupiedCells[targetX, targetY])
                 return false;
         }
